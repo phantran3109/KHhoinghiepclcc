@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -45,6 +45,7 @@
         <i class="fas fa-cloud-upload-alt"></i> Chọn video từ máy tính
       </button>
       <p class="text-xs text-gray-500 mt-2">Video sẽ được upload lên Cloudinary (miễn phí 25GB). Hỗ trợ MP4, MOV, AVI, MKV...</p>
+      <p class="text-xs text-amber-600 mt-1">⚠️ Lưu ý: Cần tạo Upload Preset tên "video_upload_preset" trong Cloudinary (chế độ Unsigned)</p>
     </div>
 
     <div class="relative my-4">
@@ -108,12 +109,12 @@
 </div>
 
 <script>
-// CẤU HÌNH CLOUDINARY - THAY CLOUD_NAME CỦA BẠN VÀO ĐÂY
-const CLOUDINARY_CLOUD_NAME = "dd6pxngsz"; // 👈 THAY THẾ NÀY!
+// ========== CẤU HÌNH ==========
+const CLOUDINARY_CLOUD_NAME = "dd6pxngsz"; // 👈 Cloud name của bạn
 
 let videos = [];
 
-// Hàm xử lý link
+// ========== XỬ LÝ LINK VIDEO ==========
 function parseVideoEmbedInfo(url) {
   if (!url) return { type: "invalid", embedUrl: null, message: "No URL" };
   
@@ -137,7 +138,7 @@ function parseVideoEmbedInfo(url) {
   return { type: "generic", embedUrl: null, message: "Không thể nhúng tự động" };
 }
 
-// Thêm video
+// ========== THÊM VIDEO ==========
 function addVideo(title, description, thumbnailUrl, videoUrl, isCloudinary = false) {
   if (!title.trim()) { alert("Vui lòng nhập tiêu đề"); return false; }
   if (!videoUrl.trim()) { alert("Vui lòng nhập link hoặc upload video"); return false; }
@@ -158,40 +159,34 @@ function addVideo(title, description, thumbnailUrl, videoUrl, isCloudinary = fal
   return true;
 }
 
-// Cloudinary Upload Widget
+// ========== CLOUDINARY UPLOAD ==========
 function initCloudinaryWidget() {
-  if (CLOUDINARY_CLOUD_NAME === "CLOUD_NAME") {
-    console.warn("⚠️ Bạn cần cấu hình dd6pxngsz trong code!");
-    document.getElementById("uploadWidgetBtn").onclick = () => {
-      alert("⚠️ Chưa cấu hình Cloudinary! Vui lòng thay 'dd6pxngsz' bằng tên cloud của bạn.\n\n📌 Lấy cloud name tại: https://cloudinary.com/console");
-    };
-    return;
-  }
-  
   const uploadButton = document.getElementById("uploadWidgetBtn");
+  
   uploadButton.onclick = () => {
-    const title = prompt("Nhập tiêu đề video:", "Video từ máy tính");
+    const title = prompt("📝 Nhập tiêu đề video:", "Video từ máy tính");
     if (!title) return;
-    const description = prompt("Nhập mô tả (tùy chọn):", "");
+    const description = prompt("📄 Nhập mô tả (tùy chọn):", "");
     
     const widget = cloudinary.createUploadWidget(
       {
         cloudName: CLOUDINARY_CLOUD_NAME,
-        uploadPreset: "video_upload_preset", // 👈 Cần tạo upload preset
+        uploadPreset: "video_upload_preset",
         sources: ["local", "camera"],
         resourceType: "video",
-        maxFileSize: 200000000, // 200MB
+        maxFileSize: 200000000,
         multiple: false,
-        clientAllowedFormats: ["mp4", "mov", "avi", "mkv", "webm"]
+        clientAllowedFormats: ["mp4", "mov", "avi", "mkv", "webm", "mp3", "m4a"]
       },
       (error, result) => {
         if (!error && result && result.event === "success") {
           const videoUrl = result.info.secure_url;
           const thumbnailUrl = result.info.thumbnail_url || "";
           addVideo(title, description, thumbnailUrl, videoUrl, true);
+          alert("✅ Upload thành công! Video đã được thêm vào thư viện.");
         } else if (error) {
           console.error(error);
-          alert("Upload thất bại: " + (error.message || "Lỗi không xác định"));
+          alert("❌ Upload thất bại: " + (error.message || "Lỗi không xác định"));
         }
       }
     );
@@ -199,32 +194,51 @@ function initCloudinaryWidget() {
   };
 }
 
-// Lưu trữ
-function saveToStorage() { localStorage.setItem("videoStreamHub", JSON.stringify(videos)); }
-function loadFromStorage() {
-  const stored = localStorage.getItem("videoStreamHub");
-  if (stored) { videos = JSON.parse(stored); renderVideoGrid(); }
+// ========== LƯU TRỮ LOCAL ==========
+function saveToStorage() { 
+  localStorage.setItem("videoStreamHub", JSON.stringify(videos)); 
 }
 
-// Modal
+function loadFromStorage() {
+  const stored = localStorage.getItem("videoStreamHub");
+  if (stored) { 
+    try {
+      videos = JSON.parse(stored); 
+      renderVideoGrid();
+    } catch(e) { videos = []; }
+  }
+}
+
+// ========== MODAL XEM VIDEO ==========
 const modal = document.getElementById("videoModal");
 const modalTitle = document.getElementById("modalTitle");
 const modalContainer = document.getElementById("modalEmbedContainer");
 const modalLink = document.getElementById("modalDirectLink");
+const modalFallbackMsg = document.getElementById("modalFallbackMsg");
 
 function openModal(video) {
   modalTitle.innerText = video.title;
   modalContainer.innerHTML = "";
+  modalFallbackMsg.classList.add("hidden");
   
   const embed = video.embedInfo || parseVideoEmbedInfo(video.originalUrl);
+  
   if (embed.embedUrl) {
     if (embed.type === "directmp4" || embed.type === "cloudinary") {
-      modalContainer.innerHTML = `<video controls width="100%" style="max-height:70vh"><source src="${embed.embedUrl}" type="video/mp4"></video>`;
+      modalContainer.innerHTML = `<video controls width="100%" style="max-height:70vh; border-radius:12px"><source src="${embed.embedUrl}" type="video/mp4">Trình duyệt không hỗ trợ video</video>`;
     } else {
       modalContainer.innerHTML = `<iframe src="${embed.embedUrl}" width="100%" height="100%" frameborder="0" allowfullscreen></iframe>`;
     }
+    if (embed.type === "facebook") {
+      modalFallbackMsg.innerHTML = `<i class="fas fa-info-circle mr-1"></i> Facebook video có thể bị giới hạn nhúng. Dùng link gốc nếu không xem được.`;
+      modalFallbackMsg.classList.remove("hidden");
+    }
   } else {
-    modalContainer.innerHTML = `<div class="p-8 text-center"><p>${embed.message}</p></div>`;
+    modalContainer.innerHTML = `<div class="p-8 text-center"><i class="fas fa-exclamation-triangle text-4xl text-gray-400 mb-3"></i><p class="text-gray-600">${embed.message}</p><button id="copyVideoLink" class="mt-4 text-indigo-600 underline">📋 Sao chép link</button></div>`;
+    setTimeout(() => {
+      const copyBtn = document.getElementById("copyVideoLink");
+      if (copyBtn) copyBtn.onclick = () => { navigator.clipboard.writeText(video.originalUrl); alert("Đã sao chép link!"); };
+    }, 100);
   }
   modalLink.href = video.originalUrl;
   modal.classList.remove("opacity-0", "invisible");
@@ -238,27 +252,36 @@ function closeModal() {
   document.body.style.overflow = "";
 }
 
+// ========== HIỂN THỊ DANH SÁCH ==========
 function renderVideoGrid() {
   const grid = document.getElementById("videoGrid");
   const emptyMsg = document.getElementById("emptyLibraryMsg");
-  if (videos.length === 0) { grid.innerHTML = ""; emptyMsg.classList.remove("hidden"); return; }
+  if (videos.length === 0) { 
+    grid.innerHTML = ""; 
+    emptyMsg.classList.remove("hidden"); 
+    return; 
+  }
   emptyMsg.classList.add("hidden");
   
   grid.innerHTML = videos.map(v => {
     let thumb = v.thumbnail || "https://placehold.co/600x400/334155/white?text=Video";
     const shortDesc = v.description.length > 80 ? v.description.slice(0,80)+"..." : v.description;
+    const safeVideo = JSON.stringify(v).replace(/'/g, "&apos;");
     return `
-      <div class="bg-white rounded-xl overflow-hidden shadow-md card-hover">
+      <div class="bg-white rounded-xl overflow-hidden shadow-md card-hover border border-gray-100">
         <div class="relative h-48 bg-gray-200">
           <img src="${thumb}" class="w-full h-full object-cover" onerror="this.src='https://placehold.co/600x400/334155/white?text=Video'">
-          <div class="absolute top-2 right-2 bg-black/60 rounded-full px-2 py-1 text-xs text-white">${v.isCloudinary ? '☁️ Cloud' : '🔗 Link'}</div>
+          <div class="absolute top-2 right-2 bg-black/70 backdrop-blur-sm rounded-full px-2 py-1 text-xs text-white flex items-center gap-1">
+            <i class="${v.isCloudinary ? 'fas fa-cloud' : 'fas fa-link'} text-xs"></i>
+            <span>${v.isCloudinary ? 'Cloud' : 'Link'}</span>
+          </div>
         </div>
         <div class="p-4">
-          <h3 class="font-bold text-lg truncate">${escapeHtml(v.title)}</h3>
+          <h3 class="font-bold text-lg truncate" title="${escapeHtml(v.title)}">${escapeHtml(v.title)}</h3>
           <p class="text-gray-500 text-sm mt-1 line-clamp-2">${escapeHtml(shortDesc)}</p>
-          <div class="mt-3 flex justify-between">
-            <button onclick='openModal(${JSON.stringify(v).replace(/'/g, "&apos;")})' class="text-indigo-600"><i class="fas fa-play-circle"></i> Xem</button>
-            <button onclick="deleteVideo('${v.id}')" class="text-red-500"><i class="fas fa-trash"></i></button>
+          <div class="mt-3 flex justify-between items-center">
+            <button onclick='openModal(${safeVideo})' class="text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-1"><i class="fas fa-play-circle"></i> Xem</button>
+            <button onclick="deleteVideo('${v.id}')" class="text-red-500 hover:text-red-700"><i class="fas fa-trash-alt"></i></button>
           </div>
         </div>
       </div>
@@ -266,21 +289,48 @@ function renderVideoGrid() {
   }).join("");
 }
 
-function deleteVideo(id) { videos = videos.filter(v => v.id !== id); saveToStorage(); renderVideoGrid(); }
-function deleteAllVideos() { if(confirm("Xóa tất cả?")){ videos=[]; saveToStorage(); renderVideoGrid(); } }
-function clearForm() { document.getElementById("videoUrl").value=""; document.getElementById("videoTitle").value=""; document.getElementById("videoDesc").value=""; document.getElementById("thumbnailUrl").value=""; }
+// ========== XÓA VIDEO ==========
+function deleteVideo(id) { 
+  videos = videos.filter(v => v.id !== id); 
+  saveToStorage(); 
+  renderVideoGrid(); 
+}
+
+function deleteAllVideos() { 
+  if(confirm("⚠️ Xóa TẤT CẢ video? Hành động này không thể hoàn tác!")){ 
+    videos = []; 
+    saveToStorage(); 
+    renderVideoGrid(); 
+  } 
+}
+
+// ========== FORM HANDLERS ==========
+function clearForm() { 
+  document.getElementById("videoUrl").value = ""; 
+  document.getElementById("videoTitle").value = ""; 
+  document.getElementById("videoDesc").value = ""; 
+  document.getElementById("thumbnailUrl").value = ""; 
+}
+
 function handleSubmit() {
   const url = document.getElementById("videoUrl").value.trim();
   const title = document.getElementById("videoTitle").value.trim();
   const desc = document.getElementById("videoDesc").value;
   const thumb = document.getElementById("thumbnailUrl").value.trim();
-  if(!title) return alert("Nhập tiêu đề");
-  if(!url) return alert("Nhập link video");
+  if(!title) return alert("📝 Vui lòng nhập tiêu đề video");
+  if(!url) return alert("🔗 Vui lòng nhập link video (Facebook, Google Drive, v.v.)");
   addVideo(title, desc, thumb, url, false);
   clearForm();
 }
-function escapeHtml(str) { return str.replace(/[&<>]/g, function(m){ return {'&':'&amp;','<':'&lt;','>':'&gt;'}[m]; }); }
 
+function escapeHtml(str) { 
+  if(!str) return "";
+  return str.replace(/[&<>]/g, function(m){ 
+    return {'&':'&amp;','<':'&lt;','>':'&gt;'}[m]; 
+  }); 
+}
+
+// ========== KHỞI TẠO ==========
 window.addEventListener("DOMContentLoaded", () => {
   loadFromStorage();
   initCloudinaryWidget();
@@ -289,6 +339,13 @@ window.addEventListener("DOMContentLoaded", () => {
   document.getElementById("deleteAllBtn").onclick = deleteAllVideos;
   document.getElementById("closeModalBtn").onclick = closeModal;
   modal.onclick = (e) => { if(e.target === modal) closeModal(); };
+  
+  // Enter key support
+  const inputs = ["videoUrl", "videoTitle", "videoDesc", "thumbnailUrl"];
+  inputs.forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.addEventListener("keypress", (e) => { if(e.key === "Enter") handleSubmit(); });
+  });
 });
 </script>
 </body>
