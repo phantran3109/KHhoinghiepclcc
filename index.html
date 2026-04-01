@@ -25,9 +25,10 @@
       <i class="fab fa-facebook text-blue-600 text-xl"></i>
       <i class="fab fa-google-drive text-green-600 text-xl"></i>
       <i class="fas fa-cloud-upload-alt text-purple-600 text-xl"></i>
+      <i class="fas fa-lock text-gray-600 text-lg"></i>
     </div>
     <h1 class="text-4xl md:text-5xl font-extrabold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">VideoStream Hub Pro</h1>
-    <p class="text-gray-500 mt-3 max-w-2xl mx-auto">Upload video trực tiếp từ máy tính (Cloudinary) hoặc dùng link Facebook/Google Drive</p>
+    <p class="text-gray-500 mt-3 max-w-2xl mx-auto">Xem video mọi lúc mọi nơi | Upload chỉ dành cho quản trị viên</p>
   </div>
 
   <!-- Form Card -->
@@ -36,21 +37,21 @@
       <i class="fas fa-cloud-upload-alt text-indigo-500"></i> Đăng tải video
     </h2>
     
-    <!-- Upload từ máy tính -->
+    <!-- Upload từ máy tính (yêu cầu mật khẩu) -->
     <div class="mb-6 p-4 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl border border-purple-200">
       <h3 class="font-semibold text-purple-800 mb-2 flex items-center gap-2">
         <i class="fas fa-upload"></i> Upload video từ máy tính (hỗ trợ 200MB)
+        <span class="bg-yellow-200 text-yellow-800 text-xs px-2 py-1 rounded-full"><i class="fas fa-lock"></i> Yêu cầu mật khẩu</span>
       </h3>
       <button id="uploadWidgetBtn" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-xl font-medium transition flex items-center gap-2">
         <i class="fas fa-cloud-upload-alt"></i> Chọn video từ máy tính
       </button>
       <p class="text-xs text-gray-500 mt-2">Video sẽ được upload lên Cloudinary (miễn phí 25GB). Hỗ trợ MP4, MOV, AVI, MKV...</p>
-      <p class="text-xs text-amber-600 mt-1">⚠️ Lưu ý: Cần tạo Upload Preset tên "video_upload_preset" trong Cloudinary (chế độ Unsigned)</p>
     </div>
 
     <div class="relative my-4">
       <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-gray-300"></div></div>
-      <div class="relative flex justify-center text-sm"><span class="px-3 bg-white text-gray-500">Hoặc nhập link từ nền tảng khác</span></div>
+      <div class="relative flex justify-center text-sm"><span class="px-3 bg-white text-gray-500">Hoặc nhập link từ nền tảng khác (không cần mật khẩu)</span></div>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -110,9 +111,22 @@
 
 <script>
 // ========== CẤU HÌNH ==========
-const CLOUDINARY_CLOUD_NAME = "dd6pxngsz"; // 👈 Cloud name của bạn
+const CLOUDINARY_CLOUD_NAME = "dd6pxngsz";
+const ADMIN_PASSWORD = "khoinghiepclc"; // 👈 MẬT KHẨU CỦA BẠN
 
 let videos = [];
+
+// ========== KIỂM TRA MẬT KHẨU ==========
+function checkPassword() {
+  let password = prompt("🔐 Nhập mật khẩu quản trị viên để upload video:");
+  if (password === ADMIN_PASSWORD) {
+    return true;
+  } else if (password !== null) {
+    alert("❌ Mật khẩu không đúng! Bạn không có quyền upload video.");
+    return false;
+  }
+  return false;
+}
 
 // ========== XỬ LÝ LINK VIDEO ==========
 function parseVideoEmbedInfo(url) {
@@ -159,11 +173,16 @@ function addVideo(title, description, thumbnailUrl, videoUrl, isCloudinary = fal
   return true;
 }
 
-// ========== CLOUDINARY UPLOAD ==========
+// ========== CLOUDINARY UPLOAD (YÊU CẦU MẬT KHẨU) ==========
 function initCloudinaryWidget() {
   const uploadButton = document.getElementById("uploadWidgetBtn");
   
   uploadButton.onclick = () => {
+    // Kiểm tra mật khẩu trước khi upload
+    if (!checkPassword()) {
+      return;
+    }
+    
     const title = prompt("📝 Nhập tiêu đề video:", "Video từ máy tính");
     if (!title) return;
     const description = prompt("📄 Nhập mô tả (tùy chọn):", "");
