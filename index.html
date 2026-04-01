@@ -160,7 +160,7 @@ function addVideo(title, description, thumbnailUrl, videoUrl, isCloudinary = fal
 
 // Cloudinary Upload Widget
 function initCloudinaryWidget() {
-  if (CLOUDINARY_CLOUD_NAME === "dd6pxngsz") {
+  if (CLOUDINARY_CLOUD_NAME === "CLOUD_NAME") {
     console.warn("⚠️ Bạn cần cấu hình dd6pxngsz trong code!");
     document.getElementById("uploadWidgetBtn").onclick = () => {
       alert("⚠️ Chưa cấu hình Cloudinary! Vui lòng thay 'dd6pxngsz' bằng tên cloud của bạn.\n\n📌 Lấy cloud name tại: https://cloudinary.com/console");
